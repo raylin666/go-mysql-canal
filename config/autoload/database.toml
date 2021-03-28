@@ -1,0 +1,14 @@
+addr='127.0.0.1:3306'
+user='root'
+password='Abc0331#'
+charset='utf8'
+flavor='mysql'
+server_id=0
+[dump]
+table_db='my_server'
+discard_err=true
+skip_master_data=false
+mysqldump='mysqldump'
+tables=["*"]
+
+
