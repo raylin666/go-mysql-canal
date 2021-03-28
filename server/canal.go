@@ -8,8 +8,7 @@ import (
 )
 
 func getCanal() *canal.Canal {
-	cfg := config.NewDatabaseConfig()
-	c, err := canal.NewCanal(cfg)
+	c, err := canal.NewCanal(config.DatabaseConfig)
 	if err != nil {
 		panic(err)
 	}
