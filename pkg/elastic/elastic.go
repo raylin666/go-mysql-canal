@@ -28,10 +28,7 @@ func NewClient() *Client {
 		panic(err)
 	}
 	client = &c
-	defer func() {
-		c.Elastic.Stop()
-		client.Elastic.Stop()
-	}()
+	defer c.Elastic.Stop()
 	return client
 }
 

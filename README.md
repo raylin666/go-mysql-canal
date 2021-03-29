@@ -1,0 +1,1 @@
+# binlog 日志监听 同步 Elastic
