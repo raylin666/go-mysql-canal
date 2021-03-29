@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	dir = "runtime/logs"
+	dir             = "runtime/logs"
 	TimestampFormat = "2006-01-02 15:04:05"
 )
 
@@ -35,7 +35,7 @@ type Logger struct {
 	// 文件名称(文件写入时存在值)
 	FileName string
 	// 配置信息
-	Conf     *conf
+	Conf *conf
 }
 
 type conf struct {
@@ -57,8 +57,9 @@ func InitLogger() {
 
 func register() map[string]*Logger {
 	loggerWriteMaps = map[string]*Logger{
-		constant.LOG_MULTI_SQL: instanceMulti(constant.LOG_MULTI_SQL),
-		constant.LOG_APP: instance(constant.LOG_APP),
+		constant.LOG_MULTI_SQL:     instanceMulti(constant.LOG_MULTI_SQL),
+		constant.LOG_MULTI_ELASTIC: instanceMulti(constant.LOG_MULTI_ELASTIC),
+		constant.LOG_APP:           instance(constant.LOG_APP),
 	}
 
 	return loggerWriteMaps
@@ -92,7 +93,7 @@ func instanceMulti(filename string) *Logger {
 	return c.create(filename)
 }
 
-func (c *conf) reset()  {
+func (c *conf) reset() {
 	c.multi = false
 	c.format = nil
 	c.level = 0
