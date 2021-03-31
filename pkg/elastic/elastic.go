@@ -53,51 +53,74 @@ func (c *Client) IndexExists(index string) (bool, error) {
 	return c.Elastic.IndexExists(index).Do(ctx)
 }
 
-// 创建索引
-func (c *Client) CreateIndex(name string) (*elastic.IndicesCreateResult, error) {
-	return c.Elastic.CreateIndex(name).Do(ctx)
+// 创建默认索引 (不设置配置项)
+func (c *Client) CreateDefaultIndex(index string) (*elastic.IndicesCreateResult, error) {
+	return c.Elastic.CreateIndex(index).Do(ctx)
+}
+
+// 创建索引并设置配置项 (STRING 风格)
+func (c *Client) CreateIndexToBodyString(index string, body string) (*elastic.IndicesCreateResult, error) {
+	return c.Elastic.CreateIndex(index).BodyString(body).Do(ctx)
+}
+
+// 创建索引并设置配置项 (JSON 风格)
+func (c *Client) CreateIndexToBodyJson(index string, body interface{}) (*elastic.IndicesCreateResult, error) {
+	return c.Elastic.CreateIndex(index).BodyJson(body).Do(ctx)
 }
 
 // 删除索引
-func (c *Client) DeleteIndex(name string) (*elastic.IndicesDeleteResponse, error) {
-	return c.Elastic.DeleteIndex(name).Do(ctx)
+func (c *Client) DeleteIndex(index string) (*elastic.IndicesDeleteResponse, error) {
+	return c.Elastic.DeleteIndex(index).Do(ctx)
+}
+
+// 获取索引设置
+func (c *Client) GetSettings(index string) (map[string]*elastic.IndicesGetSettingsResponse, error) {
+	return c.Elastic.IndexGetSettings(index).Do(ctx)
+}
+
+// 设定索引设置 (STRING 风格)
+func (c *Client) PutSettingsToString(index string, setting string) (*elastic.IndicesPutSettingsResponse, error) {
+	return c.Elastic.IndexPutSettings(index).BodyString(setting).Do(ctx)
+}
+
+// 设定索引设置 (JSON 风格)
+func (c *Client) PutSettingsToJson(index string, setting interface{}) (*elastic.IndicesPutSettingsResponse, error) {
+	return c.Elastic.IndexPutSettings(index).BodyJson(setting).Do(ctx)
 }
 
 // 获取索引映射
-func (c *Client) GetMapping(name string) (map[string]interface{}, error) {
-	return c.Elastic.GetMapping().Index(name).Do(ctx)
+func (c *Client) GetMapping(index string) (map[string]interface{}, error) {
+	return c.Elastic.GetMapping().Index(index).Do(ctx)
 }
 
 // 设定索引映射 (JSON 风格)
-func (c *Client) PutMappingToJson(name string, json map[string]interface{}) (*elastic.PutMappingResponse, error) {
-	builder := c.Elastic.PutMapping().Index(name).BodyJson(json)
-	err := builder.Validate()
+func (c *Client) PutMappingToJson(index string, mappings map[string]interface{}) (*elastic.PutMappingResponse, error) {
+	res, err := c.Elastic.PutMapping().Index(index).BodyJson(mappings).Do(ctx)
 	if err == nil {
-		return builder.Do(ctx)
+		return res, nil
 	}
 
 	logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-		"索引名称": name,
-		"索引映射": json,
-		"映射格式": "json",
+		"index":    index,
+		"mappings": mappings,
+		"format":   "json",
 	}.Fields()).Error()
 
 	return nil, err
 }
 
 // 设定索引映射 (STRING 风格)
-func (c *Client) PutMappingToString(name string, string string) (*elastic.PutMappingResponse, error) {
-	builder := c.Elastic.PutMapping().Index(name).BodyString(string)
-	err := builder.Validate()
+func (c *Client) PutMappingToString(index string, mappings string) (*elastic.PutMappingResponse, error) {
+	res, err := c.Elastic.PutMapping().Index(index).BodyString(mappings).Do(ctx)
 	if err == nil {
-		return builder.Do(ctx)
+		return res, nil
 	}
 
 	logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-		"索引名称": name,
-		"索引映射": string,
-		"映射格式": "string",
-		"err": err,
+		"index":    index,
+		"mappings": mappings,
+		"format":   "string",
+		"err":      err,
 	}.Fields()).Error()
 
 	return nil, err
@@ -113,20 +136,19 @@ func (c *Client) GetDocument(index string, id string) (*elastic.GetResult, error
 	return c.Elastic.Get().Index(index).Id(id).Do(ctx)
 }
 
-// 添加文档
-func (c *Client) AddDocument(index string, id string, body interface{}) (*elastic.IndexResponse, error) {
-	builder := c.Elastic.Index().Index(index).Id(id).BodyJson(body)
-	err := builder.Validate()
+// 创建文档
+func (c *Client) CreateDocument(index string, id string, body interface{}) (*elastic.IndexResponse, error) {
+	res, err := c.Elastic.Index().Index(index).Id(id).BodyJson(body).Refresh("wait_for").Do(ctx)
 	if err == nil {
-		return builder.Refresh("wait_for").Do(ctx)
+		return res, nil
 	}
 
 	logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-		"索引名称": index,
-		"文档ID": id,
-		"文档内容": body,
-		"文档格式": "json",
-		"err": err,
+		"index":       index,
+		"document id": id,
+		"body":        body,
+		"format":      "json",
+		"err":         err,
 	}.Fields()).Error()
 
 	return nil, err

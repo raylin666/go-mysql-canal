@@ -60,6 +60,7 @@ func register() map[string]*Logger {
 		constant.LOG_MULTI_SQL:     instanceMulti(constant.LOG_MULTI_SQL),
 		constant.LOG_MULTI_ELASTIC: instanceMulti(constant.LOG_MULTI_ELASTIC),
 		constant.LOG_APP:           instance(constant.LOG_APP),
+		constant.LOG_SQL:           instance(constant.LOG_SQL),
 	}
 
 	return loggerWriteMaps

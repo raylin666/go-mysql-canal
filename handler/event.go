@@ -2,11 +2,20 @@ package handler
 
 import (
 	"fmt"
+	"github.com/mitchellh/mapstructure"
+	"github.com/shopspring/decimal"
 	"github.com/siddontang/go-mysql/canal"
 	"github.com/siddontang/go-mysql/mysql"
 	"github.com/siddontang/go-mysql/replication"
 	"go-mysql-canal/constant"
+	"go-mysql-canal/internal/services"
+	"go-mysql-canal/model"
 	"go-mysql-canal/pkg/logger"
+	"go-mysql-canal/pkg/utils"
+)
+
+const (
+	TableArticle = "my_article"
 )
 
 /**
@@ -20,17 +29,62 @@ type EventHandler struct {
 func (h *EventHandler) OnRow(ev *canal.RowsEvent) error {
 	// 库名 | 表名 | 行为 | 数据记录
 	logger.NewWrite(constant.LOG_MULTI_SQL).WithFields(logger.Fields{
-		"库名":   ev.Table.Schema,
-		"表名":   ev.Table.Name,
-		"行为":   ev.Action,
-		"数据记录": ev.Rows,
+		"db":     ev.Table.Schema,
+		"table":  ev.Table.Name,
+		"action": ev.Action,
+		"rows":   ev.Rows,
 	}.Fields()).Info()
 
 	// 此处是参考 https://github.com/gitstliu/MysqlToAll 里面的获取字段和值的方法
-	var row = ""
+	var (
+		row         = ""
+		valueMap    = map[string]interface{}{}
+		valueStruct interface{}
+		f           func()
+	)
+
 	for columnIndex, currColumn := range ev.Table.Columns {
+		columnValue := ev.Rows[len(ev.Rows)-1][columnIndex]
 		// 字段名 | 字段的索引顺序 | 字段对应的值
-		row += fmt.Sprintf("字段名: %v 字段值: %v 索引位置: %v | ", currColumn.Name, ev.Rows[len(ev.Rows)-1][columnIndex], columnIndex)
+		row += fmt.Sprintf("field: %v value: %v postion: %v | ", currColumn.Name, columnValue, columnIndex)
+
+		switch columnValue.(type) {
+		// 解析text字段，转string
+		case []uint8:
+			columnValue = utils.Uint8ToString(columnValue.([]uint8)...)
+		// 解析decimal字段
+		case decimal.Decimal:
+			v, _ := columnValue.(decimal.Decimal).Float64()
+			columnValue = float32(v)
+		}
+
+		valueMap[currColumn.Name] = columnValue
+	}
+
+	switch ev.Action {
+	case canal.InsertAction:
+	case canal.UpdateAction:
+		switch ev.Table.Name {
+		case TableArticle:
+			valueStruct = model.Article{}
+			f = func() {
+				services.ActionArticle(valueStruct.(model.Article))
+			}
+		}
+
+		err := mapstructure.Decode(valueMap, &valueStruct)
+		if err != nil {
+			logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
+				"err":   err,
+				"table": ev.Table.Name,
+				"value": valueMap,
+			}.Fields()).Error("mapstructure decode to struct err")
+		}
+
+		if f != nil {
+			f()
+		}
+	case canal.DeleteAction:
 	}
 
 	logger.NewWrite(constant.LOG_MULTI_SQL).Println(row)
@@ -41,8 +95,8 @@ func (h *EventHandler) OnRow(ev *canal.RowsEvent) error {
 func (h *EventHandler) OnTableChanged(schema string, table string) error {
 	// 库名 ｜ 表名
 	logger.NewWrite(constant.LOG_MULTI_SQL).WithFields(logger.Fields{
-		"库名": schema,
-		"表名": table,
+		"db":    schema,
+		"table": table,
 	}.Fields()).Info()
 	return nil
 }
@@ -51,8 +105,8 @@ func (h *EventHandler) OnTableChanged(schema string, table string) error {
 func (h *EventHandler) OnPosSynced(pos mysql.Position, set mysql.GTIDSet, force bool) error {
 	// 当 force 为 true，立即同步位置
 	logger.NewWrite(constant.LOG_MULTI_SQL).WithFields(logger.Fields{
-		"binlog 文件名称": pos.Name,
-		"pos 位置":      pos.Pos,
+		"binlog filename": pos.Name,
+		"pos":             pos.Pos,
 	}.Fields()).Info()
 	return nil
 }
@@ -61,8 +115,8 @@ func (h *EventHandler) OnPosSynced(pos mysql.Position, set mysql.GTIDSet, force 
 func (h *EventHandler) OnRotate(r *replication.RotateEvent) error {
 	// binlog 的记录位置，新 binlog 的文件名
 	logger.NewWrite(constant.LOG_MULTI_SQL).WithFields(logger.Fields{
-		"下个 binlog 文件名称": r.NextLogName,
-		"pos 位置":         r.Position,
+		"next binlog filename": r.NextLogName,
+		"pos":                  r.Position,
 	}.Fields()).Info()
 	return nil
 }
@@ -71,12 +125,12 @@ func (h *EventHandler) OnRotate(r *replication.RotateEvent) error {
 func (h *EventHandler) OnDDL(nextPos mysql.Position, queryEvent *replication.QueryEvent) error {
 	// binlog 日志的变化文件与记录的位置
 	logger.NewWrite(constant.LOG_MULTI_SQL).WithFields(logger.Fields{
-		"下个 binlog 文件名称": nextPos.Name,
-		"下个 pos 位置":      nextPos.Pos,
-		"执行时间":           queryEvent.ExecutionTime,
-		"库名":             string(queryEvent.Schema),
-		"变更的 sql 语句":     string(queryEvent.StatusVars[:]),
-		"从库代理 ID":        queryEvent.SlaveProxyID,
+		"next binlog filename": nextPos.Name,
+		"next pos":             nextPos.Pos,
+		"execution time":       queryEvent.ExecutionTime,
+		"db":                   string(queryEvent.Schema),
+		"event sql query":      string(queryEvent.StatusVars[:]),
+		"slave proxy ID":       queryEvent.SlaveProxyID,
 	}.Fields()).Info()
 	return nil
 }
