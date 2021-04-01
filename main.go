@@ -16,7 +16,8 @@ func init()  {
 
 func main() {
 	elastic.NewClient()
-	// elastic.GetClient().DeleteIndex("my_server@article_service");
+
+	elastic.GetClient().DeleteIndex("my_server@article_service");
 
 	// canal 服务启动
 	err := server.NewCanal(true);

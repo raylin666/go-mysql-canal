@@ -96,7 +96,6 @@ func UpdateArticleDocument(article model.Article) {
 
 	switch article.Status {
 	case 0:
-		model.CloseArticleStatus(article.Id)
 		if _, err := elastic.GetClient().DeleteDocument(index, strconv.Itoa(article.Id)); err != nil {
 			logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
 				"err":   err,
@@ -149,4 +148,6 @@ func UpdateArticleDocument(article model.Article) {
 			}
 		}
 	}
+
+	return
 }

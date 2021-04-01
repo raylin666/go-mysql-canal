@@ -12,6 +12,7 @@ import (
 	"go-mysql-canal/model"
 	"go-mysql-canal/pkg/logger"
 	"go-mysql-canal/pkg/utils"
+	"time"
 )
 
 const (
@@ -56,14 +57,18 @@ func (h *EventHandler) OnRow(ev *canal.RowsEvent) error {
 		case decimal.Decimal:
 			v, _ := columnValue.(decimal.Decimal).Float64()
 			columnValue = float32(v)
+		case string:
+			switch currColumn.Name {
+			case "created_at", "updated_at":
+				columnValue, _ = time.Parse("2006-01-02 15:04:05.000000", columnValue.(string))
+			}
 		}
 
 		valueMap[currColumn.Name] = columnValue
 	}
 
 	switch ev.Action {
-	case canal.InsertAction:
-	case canal.UpdateAction:
+	case canal.InsertAction, canal.UpdateAction:
 		switch ev.Table.Name {
 		case TableArticle:
 			valueStruct = model.Article{}
@@ -72,7 +77,11 @@ func (h *EventHandler) OnRow(ev *canal.RowsEvent) error {
 			}
 		}
 
-		err := mapstructure.Decode(valueMap, &valueStruct)
+		decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+			WeaklyTypedInput: true,
+			Result:           &valueStruct,
+		})
+		err := decoder.Decode(valueMap)
 		if err != nil {
 			logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
 				"err":   err,

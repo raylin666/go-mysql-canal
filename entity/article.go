@@ -1,5 +1,7 @@
 package entity
 
+import "time"
+
 type ArticleService struct {
 	Article
 }
@@ -20,8 +22,8 @@ type Article struct {
 	PublisherUsername string    `json:"publisher_username" mapstructure:"publisher_username"`
 	UserId            int       `json:"user_id" mapstructure:"user_id"`
 	LastCommentTime   int       `json:"last_comment_time" mapstructure:"last_comment_time"`
-	CreatedAt         string 	`json:"created_at" mapstructure:"created_at"`
-	UpdatedAt         string 	`json:"updated_at" mapstructure:"updated_at"`
+	CreatedAt         time.Time `json:"created_at" mapstructure:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at" mapstructure:"updated_at"`
 }
 
 var ArticleServiceIndexDefaultBody = `
