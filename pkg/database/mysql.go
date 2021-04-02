@@ -43,7 +43,7 @@ func InitDatabase() {
 	// 使用插件
 	_ = conn.Use(&TracePlugin{})
 
-	database["default"] = conn
+	database[c.Dump.TableDB] = conn
 }
 
 func GetDB(connection string) *gorm.DB {

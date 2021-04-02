@@ -1,9 +1,7 @@
 package model
 
 import (
-	"database/sql"
-	"go-mysql-canal/pkg/database"
-	"gorm.io/gorm"
+	"go-mysql-canal/constant"
 	"time"
 )
 
@@ -27,19 +25,34 @@ type Article struct {
 	UpdatedAt         time.Time `json:"updated_at" mapstructure:"updated_at"`
 }
 
-func getDB() *gorm.DB {
-	return database.GetDB("default")
+type ArticleTable struct {}
+
+func (a *ArticleTable) TableName() string {
+	return constant.DbTableArticle
 }
 
-func GetArticleRows() (*sql.Rows, error) {
-	return getDB().Model(Article{}).Where("status = ?", 1).Where("deleted_at is null").Rows()
+type WithArticle struct {
+	Article
+	ArticleTable
+	ArticleExtend struct{
+		ArticleExtend
+		ArticleExtendTable
+	} `gorm:"foreignkey:article_id"`
+	ArticleCategoryRelation []struct{
+		ArticleCategoryRelation
+		ArticleCategoryRelationTable
+		Category ArticleCategory `gorm:"foreignkey:id;references:category_id"`
+	} `gorm:"foreignkey:article_id"`
 }
 
-func GetArticleScanRows(rows *sql.Rows) (article Article) {
-	_ = getDB().ScanRows(rows, &article)
+func GetWithArticleRows() (lists []WithArticle) {
+	GetMyServerDB().Model(WithArticle{}).
+		Preload("ArticleExtend").
+		Preload("ArticleCategoryRelation").
+		Preload("ArticleCategoryRelation.Category").
+		Where("status = ?", 1).
+		Where("deleted_at is null").
+		Find(&lists)
 	return
 }
 
-func GetArticleById(id int) *gorm.DB {
-	return getDB().Where("id = ?", id).First(&Article{})
-}

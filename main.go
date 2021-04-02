@@ -2,6 +2,7 @@ package main
 
 import (
 	"go-mysql-canal/config"
+	"go-mysql-canal/internal/services"
 	"go-mysql-canal/pkg/database"
 	"go-mysql-canal/pkg/elastic"
 	"go-mysql-canal/pkg/logger"
@@ -17,7 +18,8 @@ func init()  {
 func main() {
 	elastic.NewClient()
 
-	elastic.GetClient().DeleteIndex("my_server@article_service");
+	// 初始化创建\同步数据到 Elastic
+	services.InitElasticDataSync()
 
 	// canal 服务启动
 	err := server.NewCanal(true);

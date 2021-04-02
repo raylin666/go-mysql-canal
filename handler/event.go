@@ -1,22 +1,13 @@
 package handler
 
 import (
-	"fmt"
-	"github.com/mitchellh/mapstructure"
-	"github.com/shopspring/decimal"
 	"github.com/siddontang/go-mysql/canal"
 	"github.com/siddontang/go-mysql/mysql"
 	"github.com/siddontang/go-mysql/replication"
 	"go-mysql-canal/constant"
-	"go-mysql-canal/internal/services"
-	"go-mysql-canal/model"
+	"go-mysql-canal/event"
 	"go-mysql-canal/pkg/logger"
 	"go-mysql-canal/pkg/utils"
-	"time"
-)
-
-const (
-	TableArticle = "my_article"
 )
 
 /**
@@ -27,76 +18,23 @@ type EventHandler struct {
 }
 
 // 监听数据记录
-func (h *EventHandler) OnRow(ev *canal.RowsEvent) error {
+func (h *EventHandler) OnRow(canalRowsEvent *canal.RowsEvent) error {
 	// 库名 | 表名 | 行为 | 数据记录
 	logger.NewWrite(constant.LOG_MULTI_SQL).WithFields(logger.Fields{
-		"db":     ev.Table.Schema,
-		"table":  ev.Table.Name,
-		"action": ev.Action,
-		"rows":   ev.Rows,
+		"db":     canalRowsEvent.Table.Schema,
+		"table":  canalRowsEvent.Table.Name,
+		"action": canalRowsEvent.Action,
+		"rows":   canalRowsEvent.Rows,
 	}.Fields()).Info()
 
-	// 此处是参考 https://github.com/gitstliu/MysqlToAll 里面的获取字段和值的方法
-	var (
-		row         = ""
-		valueMap    = map[string]interface{}{}
-		valueStruct interface{}
-		f           func()
-	)
+	// 解析数据行值并组合为待操作数据
+	_, rows := event.GetParseValue(canalRowsEvent)
 
-	for columnIndex, currColumn := range ev.Table.Columns {
-		columnValue := ev.Rows[len(ev.Rows)-1][columnIndex]
-		// 字段名 | 字段的索引顺序 | 字段对应的值
-		row += fmt.Sprintf("field: %v value: %v postion: %v | ", currColumn.Name, columnValue, columnIndex)
-
-		switch columnValue.(type) {
-		// 解析text字段，转string
-		case []uint8:
-			columnValue = utils.Uint8ToString(columnValue.([]uint8)...)
-		// 解析decimal字段
-		case decimal.Decimal:
-			v, _ := columnValue.(decimal.Decimal).Float64()
-			columnValue = float32(v)
-		case string:
-			switch currColumn.Name {
-			case "created_at", "updated_at":
-				columnValue, _ = time.Parse("2006-01-02 15:04:05.000000", columnValue.(string))
-			}
-		}
-
-		valueMap[currColumn.Name] = columnValue
+	// 相关表的操作将触发, 否则不处理
+	if _, ok := utils.InArray(canalRowsEvent.Table.Name, constant.EventDbTables); ok {
+		event.TableEventDispatcher(canalRowsEvent, rows)
 	}
 
-	switch ev.Action {
-	case canal.InsertAction, canal.UpdateAction:
-		switch ev.Table.Name {
-		case TableArticle:
-			valueStruct = model.Article{}
-			f = func() {
-				services.ActionArticle(valueStruct.(model.Article))
-			}
-		}
-
-		decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-			WeaklyTypedInput: true,
-			Result:           &valueStruct,
-		})
-		err := decoder.Decode(valueMap)
-		if err != nil {
-			logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-				"err":   err,
-				"table": ev.Table.Name,
-				"value": valueMap,
-			}.Fields()).Error("mapstructure decode to struct err")
-		}
-
-		if f != nil {
-			f()
-		}
-	case canal.DeleteAction:
-	}
-
-	logger.NewWrite(constant.LOG_MULTI_SQL).Println(row)
 	return nil
 }
 
@@ -144,6 +82,3 @@ func (h *EventHandler) OnDDL(nextPos mysql.Position, queryEvent *replication.Que
 	return nil
 }
 
-func (h *EventHandler) String() string {
-	return "EventHandler"
-}
