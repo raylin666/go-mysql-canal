@@ -52,11 +52,12 @@ func initArticleService() {
 			_, err := elastic.GetClient().CreateDocument(index, strconv.Itoa(row.Id), document)
 			if err != nil {
 				logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-					"err":   err,
-					"index": index,
-					"id":    row.Id,
-					"body":  document,
-				}.Fields()).Error("elasticsearch add document err")
+					"err":    err,
+					"index":  index,
+					"id":     row.Id,
+					"body":   document,
+					"action": "init",
+				}.Fields()).Error("elasticsearch create document err")
 			}
 		}
 	}
@@ -88,11 +89,12 @@ func initArticleCategoryService() {
 			_, err := elastic.GetClient().CreateDocument(index, strconv.Itoa(row.Id), document)
 			if err != nil {
 				logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-					"err":   err,
-					"index": index,
-					"id":    row.Id,
-					"body":  document,
-				}.Fields()).Error("elasticsearch add document err")
+					"err":    err,
+					"index":  index,
+					"id":     row.Id,
+					"body":   document,
+					"action": "init",
+				}.Fields()).Error("elasticsearch create document err")
 			}
 		}
 	}
@@ -125,4 +127,3 @@ func createIndexToInitDocument(index string, indexBody string, callback func()) 
 		callback()
 	}
 }
-

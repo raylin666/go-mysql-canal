@@ -136,6 +136,11 @@ func (c *Client) GetDocument(index string, id string) (*elastic.GetResult, error
 	return c.Elastic.Get().Index(index).Id(id).Do(ctx)
 }
 
+// 判断文档是否存在
+func (c *Client) ExistsDocument(index string, id string) (bool, error) {
+	return c.Elastic.Exists().Index(index).Id(id).Do(ctx)
+}
+
 // 创建文档
 func (c *Client) CreateDocument(index string, id string, body interface{}) (*elastic.IndexResponse, error) {
 	res, err := c.Elastic.Index().Index(index).Id(id).BodyJson(body).Refresh("wait_for").Do(ctx)

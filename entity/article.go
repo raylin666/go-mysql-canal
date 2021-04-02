@@ -19,16 +19,6 @@ type WithArticleService struct {
 	model.WithArticle
 }
 
-// 文章分类服务文档结构体定义
-type ArticleCategoryService struct {
-	ArticleCategory
-}
-
-// 文章分类模型关系映射
-type ToArticleCategoryService struct {
-	model.ArticleCategory
-}
-
 type Article struct {
 	Id                int       `json:"id" mapstructure:"id"`
 	Title             string    `json:"title" mapstructure:"title"`
@@ -56,16 +46,6 @@ type ArticleExtend struct {
 	Content        string      `json:"content" mapstructure:"content"`
 	Keyword        string      `json:"keyword" mapstructure:"keyword"`
 	AttachmentPath interface{} `json:"attachment_path" mapstructure:"attachment_path"`
-}
-
-type ArticleCategory struct {
-	Id        int       `json:"id" mapstructure:"id"`
-	Pid       int       `json:"pid" mapstructure:"pid"`
-	Name      string    `json:"name" mapstructure:"name"`
-	Sort      int       `json:"sort" mapstructure:"sort"`
-	Status    bool      `json:"status" mapstructure:"status"`
-	CreatedAt time.Time `json:"created_at" mapstructure:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" mapstructure:"updated_at"`
 }
 
 // 文章服务索引配置项
@@ -210,43 +190,7 @@ var ArticleServiceIndexBody = `
 	}
 }`
 
-// 文章分类服务索引配置项
-var ArticleCategoryServiceIndexBody = `
-{
-	"settings":{
-		"number_of_shards": 1,
-		"number_of_replicas": 1
-	},
-	"mappings":{
-		"properties":{
-			"id":{
-				"type":"long"
-			},
-			"pid":{
-				"type":"long"
-			},
-			"name":{
-				"type":"text"
-			},
-			"sort":{
-				"type":"integer"
-			},
-			"status":{
-				"type":"boolean"
-			},
-			"created_at":{
-				"type":"date",
-				"format": "strict_date_optional_time||epoch_millis"
-			},
-			"updated_at":{
-				"type":"date",
-				"format": "strict_date_optional_time||epoch_millis"
-			}
-		}
-	}
-}`
-
-// 生成文章服务文档
+// 组织生成文章服务文档数据
 func (row WithArticleService) DocumentArticleService() ArticleService {
 	document := ArticleService{
 		Article: Article{
@@ -304,21 +248,4 @@ func (row WithArticleService) BuilderArticleServiceCategory() []ArticleCategory 
 		})
 	}
 	return category
-}
-
-// 生成文章分类服务文档
-func (row ToArticleCategoryService) DocumentArticleCategoryService() ArticleCategoryService {
-	document := ArticleCategoryService{
-		ArticleCategory: ArticleCategory{
-			Id:        row.Id,
-			Pid:       row.Pid,
-			Name:      row.Name,
-			Sort:      row.Sort,
-			Status:    row.Status,
-			CreatedAt: row.CreatedAt,
-			UpdatedAt: row.UpdatedAt,
-		},
-	}
-
-	return document
 }

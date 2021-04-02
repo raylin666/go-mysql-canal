@@ -45,10 +45,10 @@ func GetParseValue(canalRowsEvent *canal.RowsEvent) (*canal.RowsEvent, map[strin
 }
 
 // 相关表数据变更事件分发
-func TableEventDispatcher(canalRowsEvent *canal.RowsEvent, rows map[string]interface{}) {
+func TableEventDispatcher(canalRowsEvent *canal.RowsEvent, row map[string]interface{}) {
 	// 行数据校验
 	modelStruct := model.GetModelStruct(canalRowsEvent.Table.Name)
-	ok := MapstructureRows(canalRowsEvent, modelStruct, rows)
+	rowModel, ok := MapstructureRow(canalRowsEvent, modelStruct, row)
 	if !ok {
 		return
 	}
@@ -56,32 +56,40 @@ func TableEventDispatcher(canalRowsEvent *canal.RowsEvent, rows map[string]inter
 	// 数据变更行为操作
 	switch canalRowsEvent.Action {
 	case canal.InsertAction:
+		switch canalRowsEvent.Table.Name {
+		case constant.DbTableArticleCategory:
+			services.CreateArticleCategoryServiceDocument(modelStruct, rowModel)
+		case constant.DbTableArticle, constant.DbTableArticleExtend:
+
+		}
 	case canal.UpdateAction:
 		switch canalRowsEvent.Table.Name {
 		case constant.DbTableArticleCategory:
-			services.UpdateArticleServiceDocument(modelStruct, rows)
+			services.UpdateArticleCategoryServiceDocument(modelStruct, rowModel)
+			services.UpdateArticleServiceDocument(modelStruct, rowModel)
 		case constant.DbTableArticle, constant.DbTableArticleExtend:
-			services.UpdateArticleServiceDocument(modelStruct, rows)
+			services.UpdateArticleServiceDocument(modelStruct, rowModel)
 		}
 	case canal.DeleteAction:
+		services.DeleteArticleCategoryServiceDocument(modelStruct, rowModel)
 	}
 }
 
 // Mapstructure 行数据校验
-func MapstructureRows(canalRowsEvent *canal.RowsEvent, model interface{}, rows map[string]interface{}) bool {
+func MapstructureRow(canalRowsEvent *canal.RowsEvent, model interface{}, row map[string]interface{}) (interface{}, bool) {
 	decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		WeaklyTypedInput: true,
 		Result:           &model,
 	})
-	err := decoder.Decode(rows)
+	err := decoder.Decode(row)
 	if err != nil {
 		logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
 			"err":   err,
 			"table": canalRowsEvent.Table.Name,
-			"value": rows,
+			"row":   row,
 		}.Fields()).Error("mapstructure decode to struct err")
-		return false
+		return nil, false
 	}
 
-	return true
+	return model, true
 }
