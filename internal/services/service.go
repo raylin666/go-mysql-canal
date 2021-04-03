@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"go-mysql-canal/constant"
 	"go-mysql-canal/entity"
 	"go-mysql-canal/model"
@@ -51,13 +52,7 @@ func initArticleService() {
 			// 创建文档
 			_, err := elastic.GetClient().CreateDocument(index, strconv.Itoa(row.Id), document)
 			if err != nil {
-				logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-					"err":    err,
-					"index":  index,
-					"id":     row.Id,
-					"body":   document,
-					"action": "init",
-				}.Fields()).Error("elasticsearch create document err")
+				elasticLoggerWrite("initCreate", index, strconv.Itoa(row.Id), err, document)
 			}
 		}
 	}
@@ -88,13 +83,7 @@ func initArticleCategoryService() {
 			// 创建文档
 			_, err := elastic.GetClient().CreateDocument(index, strconv.Itoa(row.Id), document)
 			if err != nil {
-				logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-					"err":    err,
-					"index":  index,
-					"id":     row.Id,
-					"body":   document,
-					"action": "init",
-				}.Fields()).Error("elasticsearch create document err")
+				elasticLoggerWrite("initCreate", index, strconv.Itoa(row.Id), err, document)
 			}
 		}
 	}
@@ -110,20 +99,35 @@ func createIndexToInitDocument(index string, indexBody string, callback func()) 
 		// 创建索引并设置配置项
 		_, err := elastic.GetClient().CreateIndexToBodyString(index, indexBody)
 		if err != nil {
-			logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-				"index":            index,
-				"indexDefaultBody": indexBody,
-				"err":              err,
-			}.Fields()).Error("elasticsearch init settings error")
+			elasticLoggerWrite("init", index, "", err, indexBody)
 			_, _ = elastic.GetClient().DeleteIndex(index)
 			return
 		}
 
-		logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-			"index":            index,
-			"indexDefaultBody": indexBody,
-		}.Fields()).Info("elasticsearch init settings success")
+		elasticLoggerWrite("init", index, "", nil, indexBody)
 
 		callback()
+	}
+}
+
+func elasticLoggerWrite(action string, index string, id string, err error, doc interface{})  {
+	log := logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
+		"err":    err,
+		"index":  index,
+		"id":     id,
+		"body":   doc,
+		"action": action,
+	}.Fields())
+
+	c := "document"
+	switch action {
+	case "init":
+		c = "settings"
+	}
+
+	if err != nil {
+		log.Error(fmt.Sprintf("elasticsearch %s %s err", action, c))
+	} else {
+		log.Info(fmt.Sprintf("elasticsearch %s %s success", action, c))
 	}
 }

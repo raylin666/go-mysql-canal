@@ -56,3 +56,15 @@ func GetWithArticleRows() (lists []WithArticle) {
 	return
 }
 
+func GetWithArticleRow(id int) (row WithArticle) {
+	GetMyServerDB().Model(WithArticle{}).
+		Where("id = ?", id).
+		Preload("ArticleExtend").
+		Preload("ArticleCategoryRelation").
+		Preload("ArticleCategoryRelation.Category").
+		Where("status = ?", 1).
+		Where("deleted_at is null").
+		Find(&row)
+	return
+}
+

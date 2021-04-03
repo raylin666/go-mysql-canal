@@ -5,7 +5,6 @@ import (
 	"go-mysql-canal/entity"
 	"go-mysql-canal/model"
 	"go-mysql-canal/pkg/elastic"
-	"go-mysql-canal/pkg/logger"
 	"strconv"
 )
 
@@ -25,13 +24,7 @@ func CreateArticleCategoryServiceDocument(modelStruct interface{}, row interface
 			// 创建文档
 			_, err := elastic.GetClient().CreateDocument(index, strconv.Itoa(rowModel.Id), document)
 			if err != nil {
-				logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-					"err":    err,
-					"index":  index,
-					"id":     rowModel.Id,
-					"body":   document,
-					"action": "create",
-				}.Fields()).Error("elasticsearch create document err")
+				elasticLoggerWrite("create", index, strconv.Itoa(rowModel.Id), err, document)
 			}
 
 			return
@@ -58,13 +51,7 @@ func UpdateArticleCategoryServiceDocument(modelStruct interface{}, row interface
 				// 创建文档
 				_, err := elastic.GetClient().CreateDocument(index, strconv.Itoa(rowModel.Id), document)
 				if err != nil {
-					logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-						"err":    err,
-						"index":  index,
-						"id":     rowModel.Id,
-						"body":   document,
-						"action": "update",
-					}.Fields()).Error("elasticsearch create document err")
+					elasticLoggerWrite("updateCreate", index, strconv.Itoa(rowModel.Id), err, document)
 				}
 
 				return
@@ -76,13 +63,7 @@ func UpdateArticleCategoryServiceDocument(modelStruct interface{}, row interface
 				// 更新文档
 				_, err := elastic.GetClient().UpdateDocument(index, strconv.Itoa(rowModel.Id), document)
 				if err != nil {
-					logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-						"err":    err,
-						"index":  index,
-						"id":     rowModel.Id,
-						"body":   document,
-						"action": "update",
-					}.Fields()).Error("elasticsearch update document err")
+					elasticLoggerWrite("update", index, strconv.Itoa(rowModel.Id), err, document)
 				}
 
 				return
@@ -90,12 +71,7 @@ func UpdateArticleCategoryServiceDocument(modelStruct interface{}, row interface
 				// 删除文档
 				_, err := elastic.GetClient().DeleteDocument(index, strconv.Itoa(rowModel.Id))
 				if err != nil {
-					logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-						"err":    err,
-						"index":  index,
-						"id":     rowModel.Id,
-						"action": "update",
-					}.Fields()).Error("elasticsearch delete document err")
+					elasticLoggerWrite("updateDelete", index, strconv.Itoa(rowModel.Id), err, nil)
 				}
 
 				return
@@ -120,12 +96,7 @@ func DeleteArticleCategoryServiceDocument(modelStruct interface{}, row interface
 			// 删除文档
 			_, err := elastic.GetClient().DeleteDocument(index, strconv.Itoa(rowModel.Id))
 			if err != nil {
-				logger.NewWrite(constant.LOG_MULTI_ELASTIC).WithFields(logger.Fields{
-					"err":    err,
-					"index":  index,
-					"id":     rowModel.Id,
-					"action": "delete",
-				}.Fields()).Error("elasticsearch delete document err")
+				elasticLoggerWrite("delete", index, strconv.Itoa(rowModel.Id), err, nil)
 			}
 		}
 

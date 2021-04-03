@@ -12,9 +12,10 @@ const (
 	/** ---------------------------------------------------
 		DB Table 事件变动表
 	  ---------------------------------------------------*/
-	DbTableArticle         = "my_article"
-	DbTableArticleExtend   = "my_article_extend"
-	DbTableArticleCategory = "my_article_category"
+	DbTableArticle                 = "my_article"
+	DbTableArticleExtend           = "my_article_extend"
+	DbTableArticleCategory         = "my_article_category"
+	DbTableArticleCategoryRelation = "my_article_category_relation"
 )
 
 var (
@@ -23,5 +24,6 @@ var (
 		DbTableArticle,
 		DbTableArticleExtend,
 		DbTableArticleCategory,
+		DbTableArticleCategoryRelation,
 	}
 )

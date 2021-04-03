@@ -61,17 +61,29 @@ func TableEventDispatcher(canalRowsEvent *canal.RowsEvent, row map[string]interf
 			services.CreateArticleCategoryServiceDocument(modelStruct, rowModel)
 		case constant.DbTableArticle, constant.DbTableArticleExtend:
 
+		case constant.DbTableArticleCategoryRelation:
+			go func() {
+				services.UpdateArticleServiceDocument(modelStruct, rowModel)
+			}()
 		}
 	case canal.UpdateAction:
 		switch canalRowsEvent.Table.Name {
 		case constant.DbTableArticleCategory:
 			services.UpdateArticleCategoryServiceDocument(modelStruct, rowModel)
-			services.UpdateArticleServiceDocument(modelStruct, rowModel)
 		case constant.DbTableArticle, constant.DbTableArticleExtend:
 			services.UpdateArticleServiceDocument(modelStruct, rowModel)
 		}
 	case canal.DeleteAction:
-		services.DeleteArticleCategoryServiceDocument(modelStruct, rowModel)
+		switch canalRowsEvent.Table.Name {
+		case constant.DbTableArticleCategory:
+			services.DeleteArticleCategoryServiceDocument(modelStruct, rowModel)
+		case constant.DbTableArticle, constant.DbTableArticleExtend:
+
+		case constant.DbTableArticleCategoryRelation:
+			go func() {
+				services.UpdateArticleServiceDocument(modelStruct, rowModel)
+			}()
+		}
 	}
 }
 

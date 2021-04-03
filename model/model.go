@@ -22,6 +22,8 @@ func GetModelStruct(tableName string) interface{} {
 		modelStruct = ArticleCategory{}
 	case constant.DbTableArticleExtend:
 		modelStruct = ArticleExtend{}
+	case constant.DbTableArticleCategoryRelation:
+		modelStruct = ArticleCategoryRelation{}
 	}
 
 	return modelStruct
