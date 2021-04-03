@@ -14,6 +14,51 @@ func UpdateArticleServiceDocument(modelStruct interface{}, row interface{}) {
 	switch modelStruct.(type) {
 	case model.Article:
 	case model.ArticleExtend:
+	case model.ArticleCategory:
+		// 模型类型映射
+		rowModel := row.(model.ArticleCategory)
+		articleIds := model.GetRelationToArticleIdRows(rowModel.Id)
+		if len(articleIds) > 0 {
+			for i := range articleIds {
+				if exist, _ := elastic.GetClient().ExistsDocument(constant.ElasticIndexArticleService, strconv.Itoa(articleIds[i])); !exist {
+					r := model.GetWithArticleRow(articleIds[i])
+					// 文档生成
+					document := entity.WithArticleService{r}.DocumentArticleService()
+					// 创建文档
+					_, err := elastic.GetClient().CreateDocument(constant.ElasticIndexArticleService, strconv.Itoa(r.Id), document)
+					if err != nil {
+						elasticLoggerWrite("updateCreate", constant.ElasticIndexArticleService, strconv.Itoa(r.Id), err, document)
+					}
+				} else {
+					var entityModel entity.ArticleService
+					entityDoc, _ := elastic.GetClient().GetDocument(constant.ElasticIndexArticleService, strconv.Itoa(articleIds[i]))
+					doc := entityModel
+					// 解析出最终的索引文档内容
+					docSource, _ := entityDoc.Source.MarshalJSON()
+					_ = json.Unmarshal(docSource, &doc)
+					if doc.Id > 0 {
+						lists := model.GetRelationToCategoryRows(articleIds[i])
+						var category = make([]entity.ArticleCategory, len(lists))
+						for r := range lists {
+							category[r] = entity.ArticleCategory{
+								Id:        lists[r].Category.Id,
+								Pid:       lists[r].Category.Pid,
+								Name:      lists[r].Category.Name,
+								Sort:      lists[r].Category.Sort,
+								Status:    lists[r].Category.Status,
+								CreatedAt: lists[r].Category.CreatedAt,
+								UpdatedAt: lists[r].Category.UpdatedAt,
+							}
+						}
+						doc.Category = category
+						_, err := elastic.GetClient().UpdateDocument(constant.ElasticIndexArticleService, strconv.Itoa(articleIds[i]), doc)
+						elasticLoggerWrite("update", constant.ElasticIndexArticleService, strconv.Itoa(articleIds[i]), err, doc)
+					}
+				}
+			}
+		}
+
+		return
 	case model.ArticleCategoryRelation:
 		// 模型类型映射
 		rowModel := row.(model.ArticleCategoryRelation)

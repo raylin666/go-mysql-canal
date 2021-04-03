@@ -70,8 +70,11 @@ func TableEventDispatcher(canalRowsEvent *canal.RowsEvent, row map[string]interf
 		switch canalRowsEvent.Table.Name {
 		case constant.DbTableArticleCategory:
 			services.UpdateArticleCategoryServiceDocument(modelStruct, rowModel)
+			services.UpdateArticleServiceDocument(modelStruct, rowModel)
 		case constant.DbTableArticle, constant.DbTableArticleExtend:
 			services.UpdateArticleServiceDocument(modelStruct, rowModel)
+		case constant.DbTableArticleCategoryRelation:
+			// 目前该触发事件不处理,该事件是人为手动操作行为导致
 		}
 	case canal.DeleteAction:
 		switch canalRowsEvent.Table.Name {
